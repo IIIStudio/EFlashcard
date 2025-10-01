@@ -195,6 +195,73 @@
             width: 18px;
             height: 18px;
         }
+
+        .auto-replay-group {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin-left: 8px;
+        }
+
+        /* 开关样式（左右滑块） */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .switch .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #ccc;
+            transition: .2s;
+            border-radius: 24px;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
+        }
+        .switch .slider:before {
+            content: "";
+            position: absolute;
+            height: 18px; width: 18px;
+            left: 3px; top: 3px;
+            background-color: #fff;
+            transition: .2s;
+            border-radius: 50%;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.25);
+        }
+        .switch input:checked + .slider {
+            background-color: #4CAF50;
+        }
+        .switch input:checked + .slider:before {
+            transform: translateX(20px);
+        }
+
+        /* 数字输入样式 */
+        .num-input {
+            width: 84px;
+            padding: 6px 8px;
+            font-size: 14px;
+            border: 1px solid #c9c9c9;
+            border-radius: 4px;
+            outline: none;
+            transition: box-shadow .15s ease, border-color .15s ease;
+            background-color: #fff;
+        }
+        .num-input:focus {
+            border-color: #4CAF50;
+            box-shadow: 0 0 0 3px rgba(76,175,80,0.2);
+        }
+        .switch-label {
+            color: #666;
+            font-size: 14px;
+            margin-left: 8px;
+            margin-right: 6px;
+        }
       
         .replay-btn {
             background-color: #ff9800;
@@ -287,9 +354,22 @@
     </div>
     
     <div class="audio-control">
-        <label for="autoPlayToggle">自动播放发音:</label>
-        <input type="checkbox" id="autoPlayToggle" checked>
+        <span class="switch-label">自动播放发音</span>
+        <label class="switch" title="自动播放发音开关">
+            <input type="checkbox" id="autoPlayToggle" checked>
+            <span class="slider"></span>
+        </label>
         <button id="replayBtn" class="replay-btn">重播发音 (↓键)</button>
+
+        <!-- 自动重播控制 -->
+        <div class="auto-replay-group" aria-label="自动重播控制">
+            <label class="switch" title="自动重播开关">
+                <input type="checkbox" id="autoReplayToggle">
+                <span class="slider"></span>
+            </label>
+            <label for="autoReplayInterval">间隔(秒):</label>
+            <input type="number" id="autoReplayInterval" min="1" step="1" value="5" class="num-input">
+        </div>
     </div>
     
     <div class="skipped-cards-container" id="skippedCardsContainer">
@@ -320,6 +400,8 @@
             const autoPlayToggle = document.getElementById('autoPlayToggle');
             const replayBtn = document.getElementById('replayBtn');
             const excelFileInput = document.getElementById('excelFileInput');
+            const autoReplayToggle = document.getElementById('autoReplayToggle');
+            const autoReplayIntervalInput = document.getElementById('autoReplayInterval');
           
             let allCards = [];
             let activeCards = [];
@@ -331,6 +413,7 @@
             let isViewingSkipped = false;
             let audio = new Audio();
             let currentCard = null;
+            let autoReplayTimer = null;
           
             // 初始化
             setupEventListeners();
@@ -350,6 +433,10 @@
                 showSkippedBtn.addEventListener('click', showSkippedCards);
                 cancelViewSkippedBtn.addEventListener('click', cancelViewSkippedCards);
                 replayBtn.addEventListener('click', replayAudio);
+
+                // 自动重播事件绑定
+                autoReplayToggle.addEventListener('change', updateAutoReplay);
+                autoReplayIntervalInput.addEventListener('change', updateAutoReplay);
               
                 // 键盘导航
                 document.addEventListener('keydown', handleKeyDown);
@@ -487,6 +574,22 @@
             function replayAudio() {
                 if (currentCard) {
                     playAudio(isFlipped ? currentCard.fan : currentCard.zheng);
+                }
+            }
+
+            // 根据开关与间隔自动切换卡片（不重复发音）
+            function updateAutoReplay() {
+                if (autoReplayTimer) {
+                    clearInterval(autoReplayTimer);
+                    autoReplayTimer = null;
+                }
+                const intervalSec = Math.max(1, parseInt(autoReplayIntervalInput.value || "5", 10));
+                if (autoReplayToggle && autoReplayToggle.checked) {
+                    autoReplayTimer = setInterval(() => {
+                        if (!isViewingSkipped) {
+                            goToNextCard();
+                        }
+                    }, intervalSec * 1000);
                 }
             }
           
@@ -670,7 +773,7 @@
             </svg>
             <span class="label">EFlashcard</span>
         </a>
-        <a class="corner-link" href="https://cnb.cool/IIIStudio/HTML/EFlashcard/" target="_blank" rel="noopener noreferrer" aria-label="前往 EFlashcard 文档页面">
+        <a class="corner-link" href="https://cnb.cool/IIIStudio/PHP/EFlashcard/" target="_blank" rel="noopener noreferrer" aria-label="前往 EFlashcard 文档页面">
             <img src="https://docs.cnb.cool/images/logo/svg/LogoColorfulIcon.svg" alt="CNB Logo">
         </a>
     </div>
