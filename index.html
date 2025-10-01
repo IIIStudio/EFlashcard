@@ -317,12 +317,50 @@
             outline-offset: 2px;
             box-shadow: 0 0 0 3px rgba(76,175,80,0.2);
         }
+
+        /* 专注模式：仅显示闪卡，不隐藏 corner-links */
+        .focus-only .file-upload,
+        .focus-only .navigation,
+        .focus-only .control-group,
+        .focus-only .audio-control,
+        .focus-only .card-counter,
+        .focus-only .mode-indicator,
+        .focus-only #skippedCardsContainer {
+            display: none !important;
+        }
+
+        /* 专注模式开关容器：默认隐藏，靠近上传区域时显示 */
+        .focus-only-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: center;
+            margin: 6px 0 4px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .15s ease;
+        }
+        .focus-only-toggle.visible,
+        .focus-only-toggle:focus-within {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
     </style>
     <!-- 引入SheetJS库用于解析Excel -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
     
+    <!-- 专注模式开关（鼠标靠近上传区域时显示） -->
+    <div id="focusOnlyToggleWrap" class="focus-only-toggle" aria-label="专注模式切换">
+        <span class="switch-label">专注模式</span>
+        <label class="switch" title="仅显示闪卡">
+            <input type="checkbox" id="focusOnlyToggle">
+            <span class="slider"></span>
+        </label>
+    </div>
+
     <div class="file-upload">
         <label for="excelFileInput">上传Excel文件</label>
         <input type="file" id="excelFileInput" accept=".xlsx,.xls" />
@@ -402,6 +440,9 @@
             const excelFileInput = document.getElementById('excelFileInput');
             const autoReplayToggle = document.getElementById('autoReplayToggle');
             const autoReplayIntervalInput = document.getElementById('autoReplayInterval');
+            const focusOnlyToggle = document.getElementById('focusOnlyToggle');
+            const focusOnlyToggleWrap = document.getElementById('focusOnlyToggleWrap');
+            const fileUpload = document.querySelector('.file-upload');
           
             let allCards = [];
             let activeCards = [];
@@ -440,6 +481,44 @@
               
                 // 键盘导航
                 document.addEventListener('keydown', handleKeyDown);
+
+                // 专注模式：切换仅显示闪卡（corner-links不隐藏）
+                if (focusOnlyToggle) {
+                    focusOnlyToggle.addEventListener('change', () => {
+                        document.body.classList.toggle('focus-only', focusOnlyToggle.checked);
+                    });
+                }
+
+                // 鼠标接近上传区域时显示开关；否则隐藏
+                function handleFocusToggleVisibility(e) {
+                    if (!focusOnlyToggleWrap) return;
+                    const focusOn = (focusOnlyToggle && focusOnlyToggle.checked) || document.body.classList.contains('focus-only');
+                    let rect;
+                    let margin = focusOn ? 12 : 60;
+                    if (focusOn) {
+                        // 专注模式：以开关自身为热区
+                        rect = focusOnlyToggleWrap.getBoundingClientRect();
+                    } else if (fileUpload) {
+                        // 非专注模式：以上传区域为热区
+                        rect = fileUpload.getBoundingClientRect();
+                    } else {
+                        rect = focusOnlyToggleWrap.getBoundingClientRect();
+                        margin = 12;
+                    }
+                    const hasEvent = !!e && typeof e.clientX === 'number' && typeof e.clientY === 'number';
+                    const inX = hasEvent && e.clientX >= (rect.left - margin) && e.clientX <= (rect.right + margin);
+                    const inY = hasEvent && e.clientY >= (rect.top - margin) && e.clientY <= (rect.bottom + margin);
+                    const shouldShow = focusOn
+                        ? ((inX && inY) || focusOnlyToggleWrap.matches(':focus-within'))
+                        : (inX && inY);
+                    focusOnlyToggleWrap.classList.toggle('visible', !!shouldShow);
+                }
+                window.addEventListener('mousemove', handleFocusToggleVisibility);
+                // 初始与切换后立即刷新可见性
+                if (focusOnlyToggle) {
+                    focusOnlyToggle.addEventListener('change', () => handleFocusToggleVisibility());
+                }
+                handleFocusToggleVisibility();
             }
           
             function handleExcelUpload() {
