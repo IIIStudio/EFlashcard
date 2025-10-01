@@ -1,0 +1,678 @@
+
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>英语闪卡练习</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f5f5f5;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+      
+        .flashcard-container {
+            width: 300px;
+            height: 200px;
+            perspective: 1000px;
+            margin-bottom: 20px;
+        }
+      
+        .flashcard {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 1s;
+            cursor: pointer;
+        }
+      
+        .flashcard.flipped {
+            transform: rotateY(180deg);
+        }
+      
+        .flashcard-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            box-sizing: border-box;
+            font-size: 24px;
+            text-align: center;
+        }
+      
+        .front {
+            background-color: #4CAF50;
+            color: white;
+        }
+      
+        .back {
+            background-color: #2196F3;
+            color: white;
+            transform: rotateY(180deg);
+        }
+      
+        .navigation {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+      
+        button {
+            padding: 8px 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+      
+        button:hover {
+            background-color: #45a049;
+        }
+      
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+      
+        .card-counter {
+            margin-top: 10px;
+            font-size: 16px;
+            color: #666;
+        }
+      
+        .loading {
+            font-size: 18px;
+            color: #666;
+        }
+      
+        .mode-indicator {
+            margin-top: 10px;
+            padding: 5px 10px;
+            background-color: #ff9800;
+            color: white;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+      
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 10px;
+        }
+      
+        .skipped-cards-container {
+            display: none;
+            width: 80%;
+            max-width: 500px;
+            margin-top: 20px;
+            background-color: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+      
+        .skipped-cards-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+      
+        .skipped-card-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+        }
+      
+        .skipped-card-item:last-child {
+            border-bottom: none;
+        }
+      
+        .skipped-card-text {
+            flex-grow: 1;
+        }
+      
+        .restore-card-btn {
+            background-color: #9c27b0;
+            padding: 4px 8px;
+            font-size: 14px;
+        }
+      
+        .viewing-skipped .flashcard-container,
+        .viewing-skipped .card-counter,
+        .viewing-skipped .mode-indicator,
+        .viewing-skipped .navigation:not(.skipped-controls) {
+            display: none;
+        }
+      
+        .viewing-skipped .skipped-cards-container {
+            display: block;
+        }
+      
+        .skipped-controls {
+            display: none;
+        }
+      
+        .viewing-skipped .skipped-controls {
+            display: flex;
+        }
+      
+        .audio-control {
+            margin-top: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+      
+        .audio-control label {
+            font-size: 14px;
+            color: #666;
+        }
+      
+        .audio-control input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+        }
+      
+        .replay-btn {
+            background-color: #ff9800;
+            padding: 8px 16px;
+            margin-top: 10px;
+        }
+      
+        .file-upload {
+            margin-top: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+      
+        .file-upload label {
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        /* 自定义文件选择样式：隐藏原生输入，使用label作为按钮 */
+        .file-upload input[type="file"] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .file-upload label[for="excelFileInput"] {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background-color: #4CAF50;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+            user-select: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+            transition: background-color .2s ease, transform .02s ease;
+        }
+
+        .file-upload label[for="excelFileInput"]:hover {
+            background-color: #45a049;
+        }
+
+        .file-upload label[for="excelFileInput"]:active {
+            transform: translateY(1px);
+        }
+
+        .file-upload label[for="excelFileInput"]:focus-visible {
+            outline: 3px solid rgba(76,175,80,0.35);
+            outline-offset: 2px;
+            box-shadow: 0 0 0 3px rgba(76,175,80,0.2);
+        }
+    </style>
+    <!-- 引入SheetJS库用于解析Excel -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+    
+    <div class="file-upload">
+        <label for="excelFileInput">上传Excel文件</label>
+        <input type="file" id="excelFileInput" accept=".xlsx,.xls" />
+    </div>
+    
+    <div class="flashcard-container">
+        <div class="flashcard">
+            <div class="flashcard-face front">请上传Excel文件或等待加载</div>
+            <div class="flashcard-face back"></div>
+        </div>
+    </div>
+    
+    <div class="card-counter">卡片: 0/0 (剩余: 0)</div>
+    <div class="mode-indicator" id="modeIndicator">顺序模式</div>
+    
+    <div class="navigation">
+        <button id="prevBtn" disabled>上一张 (←键)</button>
+        <button id="flipBtn">翻转 (回车)</button>
+        <button id="nextBtn" disabled>下一张 (→键)</button>
+        <button id="randomBtn">随机模式</button>
+        <button id="showSkippedBtn" style="background-color: #9c27b0;">查看跳过的卡片</button>
+    </div>
+    
+    <div class="control-group">
+        <div class="navigation">
+            <button id="skipBtn" style="background-color: #f44336;">跳过此卡 (↑键)</button>
+            <button id="unskipAllBtn" style="background-color: #607d8b;">全部取消跳过</button>
+        </div>
+    </div>
+    
+    <div class="audio-control">
+        <label for="autoPlayToggle">自动播放发音:</label>
+        <input type="checkbox" id="autoPlayToggle" checked>
+        <button id="replayBtn" class="replay-btn">重播发音 (↓键)</button>
+    </div>
+    
+    <div class="skipped-cards-container" id="skippedCardsContainer">
+        <h2>跳过的卡片</h2>
+        <div class="skipped-cards-list" id="skippedCardsList"></div>
+        <div class="navigation skipped-controls">
+            <button id="cancelViewSkippedBtn" style="background-color: #607d8b;">返回</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const flashcard = document.querySelector('.flashcard');
+            const frontFace = document.querySelector('.front');
+            const backFace = document.querySelector('.back');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const flipBtn = document.getElementById('flipBtn');
+            const randomBtn = document.getElementById('randomBtn');
+            const skipBtn = document.getElementById('skipBtn');
+            const unskipAllBtn = document.getElementById('unskipAllBtn');
+            const showSkippedBtn = document.getElementById('showSkippedBtn');
+            const cancelViewSkippedBtn = document.getElementById('cancelViewSkippedBtn');
+            const cardCounter = document.querySelector('.card-counter');
+            const modeIndicator = document.getElementById('modeIndicator');
+            const skippedCardsList = document.getElementById('skippedCardsList');
+            const skippedCardsContainer = document.getElementById('skippedCardsContainer');
+            const autoPlayToggle = document.getElementById('autoPlayToggle');
+            const replayBtn = document.getElementById('replayBtn');
+            const excelFileInput = document.getElementById('excelFileInput');
+          
+            let allCards = [];
+            let activeCards = [];
+            let skippedCards = [];
+            let currentIndex = 0;
+            let isFlipped = false;
+            let isRandomMode = false;
+            let currentCardId = null;
+            let isViewingSkipped = false;
+            let audio = new Audio();
+            let currentCard = null;
+          
+            // 初始化
+            setupEventListeners();
+          
+            function setupEventListeners() {
+                // Excel文件上传：选择文件后自动加载
+                excelFileInput.addEventListener('change', handleExcelUpload);
+              
+                // 其他事件监听器...
+                prevBtn.addEventListener('click', goToPrevCard);
+                nextBtn.addEventListener('click', goToNextCard);
+                flipBtn.addEventListener('click', flipCard);
+                flashcard.addEventListener('click', flipCard);
+                randomBtn.addEventListener('click', toggleRandomMode);
+                skipBtn.addEventListener('click', skipCurrentCard);
+                unskipAllBtn.addEventListener('click', unskipAllCards);
+                showSkippedBtn.addEventListener('click', showSkippedCards);
+                cancelViewSkippedBtn.addEventListener('click', cancelViewSkippedCards);
+                replayBtn.addEventListener('click', replayAudio);
+              
+                // 键盘导航
+                document.addEventListener('keydown', handleKeyDown);
+            }
+          
+            function handleExcelUpload() {
+                const file = excelFileInput.files[0];
+                if (!file) {
+                    alert('请先选择Excel文件');
+                    return;
+                }
+              
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                      
+                        // 获取第一个工作表
+                        const firstSheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[firstSheetName];
+                      
+                        // 将工作表转换为JSON
+                        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                      
+                        // 处理Excel数据 (假设第一行是标题，A列是正面，B列是反面)
+                        allCards = [];
+                        for (let i = 1; i < jsonData.length; i++) {
+                            const row = jsonData[i];
+                            if (row && row.length >= 2 && row[0] && row[1]) {
+                                allCards.push({
+                                    zheng: row[0].toString(),
+                                    fan: row[1].toString(),
+                                    id: i // 使用行号作为ID
+                                });
+                            }
+                        }
+                      
+                        if (allCards.length === 0) {
+                            throw new Error('Excel文件中没有有效的闪卡数据');
+                        }
+                      
+                        // 重置应用状态
+                        skippedCards = [];
+                        resetActiveCards();
+                        updateCard();
+                        updateNavigation();
+                        updateModeIndicator();
+                      
+                        // 重置文件输入，使再次选择同一文件也能触发 change 事件
+                        excelFileInput.value = '';
+                      
+                    } catch (error) {
+                        console.error('解析Excel文件时出错:', error);
+                        frontFace.textContent = "Excel文件解析错误";
+                        backFace.textContent = error.message;
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            }
+          
+            function goToPrevCard() {
+                if (activeCards.length === 0) return;
+              
+                if (currentIndex > 0) {
+                    currentIndex--;
+                } else {
+                    currentIndex = activeCards.length - 1;
+                }
+                isFlipped = false;
+                updateCard();
+                updateNavigation();
+            }
+          
+            function goToNextCard() {
+                if (activeCards.length === 0) return;
+              
+                if (isRandomMode) {
+                    currentIndex = Math.floor(Math.random() * activeCards.length);
+                } else if (currentIndex < activeCards.length - 1) {
+                    currentIndex++;
+                } else {
+                    currentIndex = 0;
+                }
+                isFlipped = false;
+                updateCard();
+                updateNavigation();
+            }
+          
+            function flipCard() {
+                isFlipped = !isFlipped;
+                flashcard.classList.toggle('flipped', isFlipped);
+              
+                if (autoPlayToggle.checked && currentCard) {
+                    playAudio(isFlipped ? currentCard.fan : currentCard.zheng);
+                }
+                updateNavigation();
+            }
+          
+            function toggleRandomMode() {
+                isRandomMode = !isRandomMode;
+                if (isRandomMode && activeCards.length > 0) {
+                    currentIndex = Math.floor(Math.random() * activeCards.length);
+                    updateCard();
+                }
+                updateModeIndicator();
+                updateNavigation();
+            }
+          
+            function skipCurrentCard() {
+                if (currentCardId !== null && !skippedCards.includes(currentCardId)) {
+                    skippedCards.push(currentCardId);
+                    resetActiveCards();
+                    updateSkippedCardsList();
+                }
+            }
+          
+            function unskipAllCards() {
+                skippedCards = [];
+                resetActiveCards();
+                updateSkippedCardsList();
+            }
+          
+            function showSkippedCards() {
+                isViewingSkipped = true;
+                document.body.classList.add('viewing-skipped');
+                updateSkippedCardsList();
+            }
+          
+            function cancelViewSkippedCards() {
+                isViewingSkipped = false;
+                document.body.classList.remove('viewing-skipped');
+            }
+          
+            function replayAudio() {
+                if (currentCard) {
+                    playAudio(isFlipped ? currentCard.fan : currentCard.zheng);
+                }
+            }
+          
+            function resetActiveCards() {
+                activeCards = allCards.filter(card => 
+                    !skippedCards.includes(card.id)
+                );
+                if (isRandomMode && activeCards.length > 0) {
+                    currentIndex = Math.floor(Math.random() * activeCards.length);
+                } else {
+                    currentIndex = 0;
+                }
+                updateCard();
+                updateNavigation();
+            }
+          
+            function updateCard() {
+                if (activeCards.length > 0 && currentIndex >= 0 && currentIndex < activeCards.length) {
+                    currentCard = activeCards[currentIndex];
+                    currentCardId = currentCard.id;
+                    frontFace.textContent = currentCard.zheng;
+                    backFace.textContent = currentCard.fan;
+                    cardCounter.textContent = `卡片: ${currentIndex + 1}/${activeCards.length} (剩余: ${allCards.length - skippedCards.length})`;
+                  
+                    if (!isFlipped) {
+                        flashcard.classList.remove('flipped');
+                    }
+                  
+                    if (autoPlayToggle.checked) {
+                        playAudio(isFlipped ? currentCard.fan : currentCard.zheng);
+                    }
+                } else {
+                    frontFace.textContent = "没有可用卡片";
+                    backFace.textContent = "请取消一些跳过";
+                    currentCardId = null;
+                    currentCard = null;
+                }
+            }
+          
+            function playAudio(text) {
+                if (!text) return;
+              
+                audio.pause();
+                const encodedText = encodeURIComponent(text);
+                audio.src = `https://dict.youdao.com/dictvoice?audio=${encodedText}`;
+                audio.play().catch(e => console.log("自动播放被阻止:", e));
+            }
+          
+            function updateNavigation() {
+                prevBtn.disabled = activeCards.length === 0;
+                nextBtn.disabled = activeCards.length === 0;
+                skipBtn.disabled = activeCards.length === 0 || currentCardId === null;
+                unskipAllBtn.disabled = skippedCards.length === 0;
+                showSkippedBtn.disabled = skippedCards.length === 0;
+                replayBtn.disabled = currentCard === null;
+            }
+          
+            function updateModeIndicator() {
+                modeIndicator.textContent = isRandomMode ? "随机模式" : "顺序模式";
+                randomBtn.textContent = isRandomMode ? "顺序模式" : "随机模式";
+            }
+          
+            function updateSkippedCardsList() {
+                skippedCardsList.innerHTML = '';
+              
+                const skippedItems = allCards.filter(card => 
+                    skippedCards.includes(card.id)
+                );
+              
+                if (skippedItems.length === 0) {
+                    skippedCardsList.innerHTML = '<p>没有跳过的卡片</p>';
+                    return;
+                }
+              
+                skippedItems.forEach(card => {
+                    const cardItem = document.createElement('div');
+                    cardItem.className = 'skipped-card-item';
+                  
+                    const cardText = document.createElement('div');
+                    cardText.className = 'skipped-card-text';
+                    cardText.textContent = `${card.zheng} / ${card.fan}`;
+                  
+                    const restoreBtn = document.createElement('button');
+                    restoreBtn.className = 'restore-card-btn';
+                    restoreBtn.textContent = '恢复';
+                    restoreBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        skippedCards = skippedCards.filter(id => id !== card.id);
+                        updateSkippedCardsList();
+                    });
+                  
+                    cardItem.appendChild(cardText);
+                    cardItem.appendChild(restoreBtn);
+                    skippedCardsList.appendChild(cardItem);
+                });
+            }
+          
+            function handleKeyDown(e) {
+                if (isViewingSkipped) return;
+              
+                switch(e.key) {
+                    case 'ArrowLeft':
+                        if (!prevBtn.disabled) prevBtn.click();
+                        break;
+                    case 'ArrowRight':
+                        if (!nextBtn.disabled) nextBtn.click();
+                        break;
+                    case 'ArrowUp':
+                        if (!skipBtn.disabled) skipBtn.click();
+                        break;
+                    case 'ArrowDown': // 下箭头键重播发音
+                        if (!replayBtn.disabled) replayBtn.click();
+                        break;
+                    case ' ':
+                        if (e.target === document.body) {
+                            flipBtn.click();
+                            e.preventDefault();
+                        }
+                        break;
+                    case 'Enter':
+                        flipBtn.click();
+                        break;
+                    case 'r':
+                        randomBtn.click();
+                        break;
+                    case 's':
+                        skipBtn.click();
+                        break;
+                    case 'a':
+                        unskipAllBtn.click();
+                        break;
+                    case 'v':
+                        showSkippedBtn.click();
+                        break;
+                }
+            }
+        });
+    </script>
+    
+    <style>
+        .corner-links {
+            position: fixed;
+            right: 20px;
+            bottom: 20px;
+            display: flex;
+            align-items: center;
+            /* gap: 12px;*/
+            z-index: 9999;
+        }
+        .corner-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            /* background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);*/
+            border-radius: 8px;
+            color: #212529;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        .corner-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+        .corner-link img,
+        .corner-link svg {
+            width: 22px;
+            height: 22px;
+        }
+        .corner-link .label {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+    </style>
+    <div class="corner-links" aria-label="页面固定链接">
+        <a class="corner-link" href="https://github.com/IIIStudio/EFlashcard" target="_blank" rel="noopener noreferrer" aria-label="前往 GitHub 仓库">
+            <!-- 内联 GitHub 图标，避免外部资源依赖 -->
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+                <path fill="#24292F" d="M12 .5a12 12 0 0 0-3.79 23.41c.6.11.82-.26.82-.58v-2.02c-3.35.73-4.06-1.61-4.06-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.09-.75.08-.74.08-.74 1.2.09 1.83 1.23 1.83 1.23 1.07 1.83 2.8 1.3 3.49.99.11-.78.42-1.3.76-1.6-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.51.12-3.15 0 0 1.01-.32 3.3 1.23.96-.27 1.99-.4 3.01-.4s2.05.14 3.01.4c2.29-1.55 3.3-1.23 3.3-1.23.66 1.64.25 2.85.12 3.15.77.84 1.24 1.91 1.24 3.22 0 4.61-2.8 5.63-5.47 5.93.43.37.81 1.1.81 2.22v3.29c0 .32.22.7.83.58A12 12 0 0 0 12 .5Z"/>
+            </svg>
+            <span class="label">EFlashcard</span>
+        </a>
+        <a class="corner-link" href="https://cnb.cool/IIIStudio/PHP/EFlashcard/" target="_blank" rel="noopener noreferrer" aria-label="前往 EFlashcard 文档页面">
+            <img src="https://docs.cnb.cool/images/logo/svg/LogoColorfulIcon.svg" alt="CNB Logo">
+        </a>
+    </div>
+</body>
+</html>
