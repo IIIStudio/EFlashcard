@@ -455,9 +455,60 @@
             let audio = new Audio();
             let currentCard = null;
             let autoReplayTimer = null;
+
+            // 本地持久化：保存与恢复
+            const STORAGE_KEY = 'EFlashcardState_v1';
+            function saveState() {
+                try {
+                    const state = {
+                        allCards,
+                        skippedCards,
+                        currentIndex,
+                        isRandomMode,
+                        isFlipped,
+                        focusOnly: !!(focusOnlyToggle && focusOnlyToggle.checked)
+                    };
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+                } catch (e) {
+                    console.warn('保存状态失败:', e);
+                }
+            }
+            function tryRestoreState() {
+                try {
+                    const raw = localStorage.getItem(STORAGE_KEY);
+                    if (!raw) return;
+                    const state = JSON.parse(raw);
+                    if (Array.isArray(state.allCards) && state.allCards.length > 0) {
+                        allCards = state.allCards;
+                        skippedCards = Array.isArray(state.skippedCards) ? state.skippedCards : [];
+                        isRandomMode = !!state.isRandomMode;
+                        isFlipped = !!state.isFlipped;
+
+                        // 专注模式恢复
+                        if (focusOnlyToggle) {
+                            focusOnlyToggle.checked = !!state.focusOnly;
+                            document.body.classList.toggle('focus-only', focusOnlyToggle.checked);
+                        }
+
+                        // 重建活动卡片并应用索引
+                        resetActiveCards();
+                        if (typeof state.currentIndex === 'number' &&
+                            state.currentIndex >= 0 &&
+                            state.currentIndex < activeCards.length) {
+                            currentIndex = state.currentIndex;
+                        }
+                        updateModeIndicator();
+                        updateCard();
+                        updateNavigation();
+                    }
+                } catch (e) {
+                    console.warn('恢复状态失败:', e);
+                }
+            }
           
             // 初始化
             setupEventListeners();
+            tryRestoreState();
           
             function setupEventListeners() {
                 // Excel文件上传：选择文件后自动加载
@@ -564,6 +615,7 @@
                         updateCard();
                         updateNavigation();
                         updateModeIndicator();
+                        saveState();
                       
                         // 重置文件输入，使再次选择同一文件也能触发 change 事件
                         excelFileInput.value = '';
@@ -588,6 +640,7 @@
                 isFlipped = false;
                 updateCard();
                 updateNavigation();
+                saveState();
             }
           
             function goToNextCard() {
@@ -603,6 +656,7 @@
                 isFlipped = false;
                 updateCard();
                 updateNavigation();
+                saveState();
             }
           
             function flipCard() {
@@ -623,6 +677,7 @@
                 }
                 updateModeIndicator();
                 updateNavigation();
+                saveState();
             }
           
             function skipCurrentCard() {
@@ -630,6 +685,7 @@
                     skippedCards.push(currentCardId);
                     resetActiveCards();
                     updateSkippedCardsList();
+                    saveState();
                 }
             }
           
@@ -637,6 +693,7 @@
                 skippedCards = [];
                 resetActiveCards();
                 updateSkippedCardsList();
+                saveState();
             }
           
             function showSkippedCards() {
@@ -758,6 +815,7 @@
                         e.stopPropagation();
                         skippedCards = skippedCards.filter(id => id !== card.id);
                         updateSkippedCardsList();
+                        saveState();
                     });
                   
                     cardItem.appendChild(cardText);
@@ -852,7 +910,7 @@
             </svg>
             <span class="label">EFlashcard</span>
         </a>
-        <a class="corner-link" href="https://cnb.cool/IIIStudio/PHP/EFlashcard/" target="_blank" rel="noopener noreferrer" aria-label="前往 EFlashcard 文档页面">
+        <a class="corner-link" href="https://cnb.cool/IIIStudio/HTML/EFlashcard/" target="_blank" rel="noopener noreferrer" aria-label="前往 EFlashcard 文档页面">
             <img src="https://docs.cnb.cool/images/logo/svg/LogoColorfulIcon.svg" alt="CNB Logo">
         </a>
     </div>
