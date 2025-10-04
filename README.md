@@ -5,6 +5,10 @@
 测试使用闪卡.xlsx
 
 > 我没想到确实还是有人用的！
+> 我推荐使用： [Qwerty Learner](https://github.com/RealKai42/qwerty-learner)
+> 我现在是不知道需求是什么，就不知道如何去改！
+
+1. 添加词库导入，我估计有人使用是还是英文背单词。词汇需要自己做，如果是通用的可以去在Qwerty Learner上面找，在public/dicts 里面很多json。
 
 ## 快捷键
 
